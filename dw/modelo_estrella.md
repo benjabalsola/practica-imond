@@ -144,4 +144,31 @@ erDiagram
         VARCHAR device
         DECIMAL duration_minutes
     }
+    tablero_envios {
+        DATE fecha
+        VARCHAR canal
+        VARCHAR provincia
+        INTEGER dias_entrega
+    }
+    tablero_nps {
+        DATE fecha
+        VARCHAR canal
+        INTEGER puntaje
+        INTEGER promotor
+        INTEGER detractor
+    }
+    tablero_usuarios {
+        DATE fecha
+        VARCHAR canal
+        INTEGER cliente
+    }
+    tablero_ventas {
+        DATE fecha
+        VARCHAR canal
+        VARCHAR provincia
+        VARCHAR producto
+        BIGINT pedido
+        DECIMAL importe_productos
+        DOUBLE importe_total
+    }
 ```
