@@ -25,13 +25,15 @@
 
 CREATE TABLE dim_product (
     product_key INTEGER PRIMARY KEY,
-    product_id  INTEGER NOT NULL,
+    product_id  INTEGER,
     sku         VARCHAR NOT NULL,
     name        VARCHAR NOT NULL,
     category    VARCHAR,             -- Classic / Sport
     family      VARCHAR,             -- Bottles
     list_price  DECIMAL(12, 2)
 );
+
+INSERT INTO dim_product VALUES (-1, NULL, 'N/A', 'Desconocido', NULL, NULL, NULL);
 
 INSERT INTO dim_product
 SELECT
@@ -65,8 +67,8 @@ LEFT JOIN raw.product_category AS f ON f.category_id = c.parent_id;    -- famili
 
 
 CREATE TABLE dim_date (
-    date_key     INTEGER PRIMARY KEY,   -- ej. 20240131
-    fecha        DATE NOT NULL,
+    date_key     INTEGER PRIMARY KEY,   -- ej. 20240131; -1 = fecha desconocida o que todavía no ocurrió
+    fecha        DATE,
     anio         INTEGER,
     trimestre    INTEGER,
     mes          INTEGER,
@@ -75,6 +77,8 @@ CREATE TABLE dim_date (
     nombre_dia   VARCHAR,
     es_fin_de_semana BOOLEAN
 );
+
+INSERT INTO dim_date VALUES (-1, NULL, NULL, NULL, NULL, 'Desconocido', NULL, 'Desconocido', NULL);
 
 INSERT INTO dim_date
 SELECT
@@ -171,3 +175,175 @@ SELECT
     status,
     created_at
 FROM raw.customer;
+
+
+-- ---------------------------------------------------------------------
+-- Dirección (de envío y de facturación de los pedidos)
+-- ---------------------------------------------------------------------
+CREATE TABLE dim_address (
+    address_key  INTEGER PRIMARY KEY,
+    address_id   BIGINT,
+    city         VARCHAR,
+    postal_code  VARCHAR,
+    province     VARCHAR,
+    country_code VARCHAR
+);
+
+INSERT INTO dim_address VALUES (-1, NULL, 'Desconocido', NULL, 'Desconocido', NULL);
+
+INSERT INTO dim_address
+SELECT
+    ROW_NUMBER() OVER (ORDER BY a.address_id) AS address_key,
+    a.address_id,
+    a.city,
+    CAST(a.postal_code AS VARCHAR),
+    pr.name AS province,
+    a.country_code
+FROM raw.address AS a
+LEFT JOIN raw.province AS pr ON pr.province_id = a.province_id;
+
+
+-- ---------------------------------------------------------------------
+-- Dimensiones chicas para los atributos descriptivos
+-- (estados, medios de pago, transportista, origen de la visita, dispositivo, puntaje NPS).
+-- Se cargan con los valores que aparecen en raw/, así no queda texto suelto en los hechos.
+-- ---------------------------------------------------------------------
+CREATE TABLE dim_order_status (
+    order_status_key INTEGER PRIMARY KEY,
+    code             VARCHAR NOT NULL,   -- CREATED / PAID / FULFILLED / CANCELLED / REFUNDED
+    descripcion      VARCHAR,
+    es_venta         BOOLEAN NOT NULL    -- TRUE si es PAID o FULFILLED (definición de venta de la consigna)
+);
+
+INSERT INTO dim_order_status VALUES (-1, 'N/A', 'Desconocido', FALSE);
+
+INSERT INTO dim_order_status
+SELECT
+    ROW_NUMBER() OVER (ORDER BY status),
+    status,
+    CASE status WHEN 'CREATED'   THEN 'Creado'
+                WHEN 'PAID'      THEN 'Pagado'
+                WHEN 'FULFILLED' THEN 'Entregado'
+                WHEN 'CANCELLED' THEN 'Cancelado'
+                WHEN 'REFUNDED'  THEN 'Devuelto' END,
+    status IN ('PAID', 'FULFILLED')
+FROM (SELECT DISTINCT status FROM raw.sales_order);
+
+
+CREATE TABLE dim_payment_method (
+    payment_method_key INTEGER PRIMARY KEY,
+    code               VARCHAR NOT NULL,   -- CARD / CASH / GATEWAY / TRANSFER
+    descripcion        VARCHAR
+);
+
+INSERT INTO dim_payment_method VALUES (-1, 'N/A', 'Desconocido');
+
+INSERT INTO dim_payment_method
+SELECT
+    ROW_NUMBER() OVER (ORDER BY method),
+    method,
+    CASE method WHEN 'CARD'     THEN 'Tarjeta'
+                WHEN 'CASH'     THEN 'Efectivo'
+                WHEN 'GATEWAY'  THEN 'Pasarela de pago'
+                WHEN 'TRANSFER' THEN 'Transferencia' END
+FROM (SELECT DISTINCT method FROM raw.payment);
+
+
+CREATE TABLE dim_payment_status (
+    payment_status_key INTEGER PRIMARY KEY,
+    code               VARCHAR NOT NULL,   -- PENDING / PAID / FAILED / REFUNDED
+    descripcion        VARCHAR
+);
+
+INSERT INTO dim_payment_status VALUES (-1, 'N/A', 'Desconocido');
+
+INSERT INTO dim_payment_status
+SELECT
+    ROW_NUMBER() OVER (ORDER BY status),
+    status,
+    CASE status WHEN 'PENDING'  THEN 'Pendiente'
+                WHEN 'PAID'     THEN 'Pagado'
+                WHEN 'FAILED'   THEN 'Rechazado'
+                WHEN 'REFUNDED' THEN 'Reintegrado' END
+FROM (SELECT DISTINCT status FROM raw.payment);
+
+
+CREATE TABLE dim_shipment_status (
+    shipment_status_key INTEGER PRIMARY KEY,
+    code                VARCHAR NOT NULL,   -- READY / SHIPPED / DELIVERED / CANCELLED
+    descripcion         VARCHAR
+);
+
+INSERT INTO dim_shipment_status VALUES (-1, 'N/A', 'Desconocido');
+
+INSERT INTO dim_shipment_status
+SELECT
+    ROW_NUMBER() OVER (ORDER BY status),
+    status,
+    CASE status WHEN 'READY'     THEN 'Listo para despachar'
+                WHEN 'SHIPPED'   THEN 'En camino'
+                WHEN 'DELIVERED' THEN 'Entregado'
+                WHEN 'CANCELLED' THEN 'Cancelado' END
+FROM (SELECT DISTINCT status FROM raw.shipment);
+
+
+CREATE TABLE dim_carrier (
+    carrier_key INTEGER PRIMARY KEY,
+    name        VARCHAR NOT NULL
+);
+
+INSERT INTO dim_carrier VALUES (-1, 'Desconocido');
+
+INSERT INTO dim_carrier
+SELECT ROW_NUMBER() OVER (ORDER BY carrier), carrier
+FROM (SELECT DISTINCT carrier FROM raw.shipment WHERE carrier IS NOT NULL);
+
+
+CREATE TABLE dim_web_source (
+    web_source_key INTEGER PRIMARY KEY,
+    code           VARCHAR NOT NULL,   -- ads / direct / organic / referral
+    descripcion    VARCHAR
+);
+
+INSERT INTO dim_web_source VALUES (-1, 'N/A', 'Desconocido');
+
+INSERT INTO dim_web_source
+SELECT
+    ROW_NUMBER() OVER (ORDER BY source),
+    source,
+    CASE source WHEN 'ads'      THEN 'Publicidad'
+                WHEN 'direct'   THEN 'Directo'
+                WHEN 'organic'  THEN 'Búsqueda orgánica'
+                WHEN 'referral' THEN 'Referido' END
+FROM (SELECT DISTINCT source FROM raw.web_session);
+
+
+CREATE TABLE dim_device (
+    device_key INTEGER PRIMARY KEY,
+    code       VARCHAR NOT NULL   -- desktop / mobile / tablet
+);
+
+INSERT INTO dim_device VALUES (-1, 'Desconocido');
+
+INSERT INTO dim_device
+SELECT ROW_NUMBER() OVER (ORDER BY device), device
+FROM (SELECT DISTINCT device FROM raw.web_session);
+
+
+-- Puntaje NPS: una fila por puntaje posible (0 a 10) con su grupo.
+CREATE TABLE dim_nps_score (
+    score_key INTEGER PRIMARY KEY,   -- igual al puntaje; -1 = desconocido
+    score     INTEGER,
+    grupo     VARCHAR NOT NULL       -- Promotor (9-10) / Neutro (7-8) / Detractor (0-6)
+);
+
+INSERT INTO dim_nps_score VALUES (-1, NULL, 'Desconocido');
+
+INSERT INTO dim_nps_score
+SELECT
+    score,
+    score,
+    CASE WHEN score >= 9 THEN 'Promotor'
+         WHEN score >= 7 THEN 'Neutro'
+         ELSE 'Detractor' END
+FROM range(0, 11) AS t(score);
