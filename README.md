@@ -6,7 +6,7 @@ Se armó un modelo estrella (metodología Kimball) a partir de los datos de vent
 
 - Datos de origen: carpeta `raw/` (una foto del sistema al 30/09/2025, pedidos del 01/01/2024 al 30/09/2025, montos en pesos argentinos).
 - Data warehouse: carpeta `dw/` (un CSV por tabla, generados por `run_sql.py`).
-- Tablero: LookerStudio → _pegar acá el enlace_ · versión HTML: `tablero.html` · capturas en `capturas/`.
+- **Tablero interactivo:** https://benjabalsola.github.io/practica-imond/
 
 ## Cómo ejecutarlo
 
