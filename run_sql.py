@@ -15,16 +15,19 @@ Cada vez que se arma el data warehouse:
      Si una consulta es un SELECT, muestra el resultado en la terminal.
   3. Exporta cada tabla creada a dw/<tabla>.csv (la carpeta dw/ se regenera completa).
   4. Genera dw/modelo_estrella.md con el diagrama del modelo (GitHub lo dibuja solo).
+  5. Copia los marts del tablero (dw/tablero_*.csv) a docs/datos.js, que es lo que lee docs/index.html.
 
 La interfaz del navegador necesita internet. Sin conexión se abre una consola SQL en la terminal.
 """
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import socket
 import sys
+from decimal import Decimal
 from pathlib import Path
 
 import duckdb
@@ -35,6 +38,7 @@ SQL_DIR = ROOT / "sql"
 DW_DIR = ROOT / "dw"
 DATABASE = ROOT / "warehouse.duckdb"
 DIAGRAM = DW_DIR / "modelo_estrella.md"
+DASHBOARD_DATA = ROOT / "docs" / "datos.js"
 UI_HOST = "ui.duckdb.org"  # de acá la interfaz descarga sus archivos
 ALREADY_OPEN = ("La base warehouse.duckdb está abierta en otra terminal (¿quedó abierto --ui o --explorar?).\n"
                 "Cerrala presionando Enter en esa terminal y volvé a ejecutar.")
@@ -149,6 +153,31 @@ def write_diagram(con: duckdb.DuckDBPyConnection, tables: list[str]) -> None:
     print(f"\nDiagrama del modelo: {DIAGRAM.relative_to(ROOT)}")
 
 
+def write_dashboard_data() -> None:
+    """Copia los marts exportados (dw/tablero_*.csv) a docs/datos.js, sin calcular nada.
+
+    El tablero es una página estática (GitHub Pages publica solo docs/), así que los
+    marts viajan como un archivo .js con las mismas columnas y filas que los CSV de dw/.
+    """
+    marts = sorted(DW_DIR.glob("tablero_*.csv"))
+    if not marts:
+        return
+    reader = duckdb.connect()  # en memoria: lee los CSV de dw/ tal cual quedaron
+    data = {}
+    for path in marts:
+        relation = reader.sql(f"SELECT * FROM read_csv('{path.as_posix()}', header = true)")
+        rows = [[float(v) if isinstance(v, Decimal) else v for v in row] for row in relation.fetchall()]
+        data[path.stem] = {"columnas": relation.columns, "filas": rows}
+    reader.close()
+    DASHBOARD_DATA.parent.mkdir(exist_ok=True)
+    DASHBOARD_DATA.write_text(
+        "// Generado por run_sql.py a partir de dw/tablero_*.csv. No editar a mano.\n"
+        "window.DATOS = " + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";\n",
+        encoding="utf-8",
+    )
+    print(f"Datos del tablero: {DASHBOARD_DATA.relative_to(ROOT)} ({', '.join(data)})")
+
+
 def build() -> duckdb.DuckDBPyConnection:
     sql_files = sorted(SQL_DIR.glob("*.sql"))
     if not sql_files:
@@ -168,6 +197,7 @@ def build() -> duckdb.DuckDBPyConnection:
     if tables:
         export_tables(con, tables)
         write_diagram(con, tables)
+        write_dashboard_data()
     else:
         print("\nTodavía no se creó ninguna tabla.")
     print(f"\nListo. Base de datos: {DATABASE.name}")
