@@ -1,0 +1,6 @@
+shipment_status_key,code,descripcion
+-1,N/A,Desconocido
+1,CANCELLED,Cancelado
+2,DELIVERED,Entregado
+3,READY,Listo para despachar
+4,SHIPPED,En camino

@@ -1,0 +1,7 @@
+order_status_key,code,descripcion,es_venta
+-1,N/A,Desconocido,false
+1,CANCELLED,Cancelado,false
+2,CREATED,Creado,false
+3,FULFILLED,Entregado,true
+4,PAID,Pagado,true
+5,REFUNDED,Devuelto,false
