@@ -196,7 +196,7 @@ ORDER BY anio_mes;
 
 ### Ideas para sumar al tablero
 
-- Tasa de conversión: pedidos online / sesiones web, por origen de la visita (`dim_web_source`).
+- Tasa de conversión mensual: pedidos online / sesiones web. No se puede abrir por origen de la visita, porque `sales_order` no guarda de qué sesión vino el pedido.
 - Pagos rechazados por método de pago (`fact_payment`).
 - Pedidos cancelados y devueltos por mes.
 - Ventas de Córdoba contra la meta de +15 %, como indicador de semáforo.
