@@ -24,7 +24,7 @@ python run_sql.py                # arma todo desde cero
 Ese único comando:
 
 1. Borra `warehouse.duckdb` y `dw/` y los vuelve a crear desde los CSV de `raw/`.
-2. Ejecuta los archivos de `sql/` en orden. Si falla algún control de `05_validaciones.sql`, se detiene con un error.
+2. Ejecuta los archivos de `sql/` en orden.
 3. Exporta cada tabla a `dw/<tabla>.csv` y dibuja el modelo en `dw/modelo_estrella.md`.
 4. Copia los marts del tablero (`dw/tablero_*.csv`) a `docs/datos.js`, que es el archivo que lee el tablero.
 
@@ -38,7 +38,6 @@ Correrlo dos veces da exactamente los mismos archivos. Para ver el tablero en lo
 | `sql/02_hechos.sql` | Crea y carga los 6 hechos, con `PRIMARY KEY` y `FOREIGN KEY ... NOT NULL` declaradas en el `CREATE TABLE` |
 | `sql/03_consultas.sql` | Consultas clave de los 6 KPIs |
 | `sql/04_tablero.sql` | Marts del tablero (`tablero_*`), ya agregados por mes |
-| `sql/05_validaciones.sql` | 42 controles: filas raw contra DW, sumas que cierran, FK huérfanas y marts contra hechos |
 
 ## Arquitectura
 
