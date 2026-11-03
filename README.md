@@ -142,6 +142,21 @@ El filtro de fecha es **por mes** (Desde / Hasta), aunque el modelo tiene granul
 
 Cuando un filtro no aplica, la tarjeta o el gráfico lo dice.
 
+### Capturas
+
+Imágenes del tablero en la carpeta `capturas/`, con los datos al 30/09/2025:
+
+| Archivo | Filtros |
+|---|---|
+| [`01_tablero_completo.png`](capturas/01_tablero_completo.png) | Todo el período (ene 2024 a sep 2025), sin filtros |
+| [`02_filtro_cordoba_2025.png`](capturas/02_filtro_cordoba_2025.png) | Ene a sep 2025, provincia Córdoba (meta +15 %) |
+| [`03_filtro_mendoza_online.png`](capturas/03_filtro_mendoza_online.png) | Todo el período, canal ONLINE, provincia Mendoza (meta de entregas) |
+| [`04_filtro_producto_sport_b.png`](capturas/04_filtro_producto_sport_b.png) | Todo el período, producto Sport B |
+
+![Tablero completo](capturas/01_tablero_completo.png)
+
+![Filtro Córdoba 2025](capturas/02_filtro_cordoba_2025.png)
+
 ## KPIs y consultas clave
 
 | KPI | Definición | En el mart | En el tablero |
